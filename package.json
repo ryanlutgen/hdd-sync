@@ -1,0 +1,26 @@
+{
+  "name": "hdd-sync",
+  "version": "1.0.0",
+  "description": "Sync contents of one hard drive/path to another hard drive/path",
+  "main": "index.js",
+  "dependencies": {
+    "lodash": "^4.17.4",
+    "log4js": "^1.1.0",
+    "minimist": "^1.2.0",
+    "walk": "^2.3.9"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "run": "node index"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryanlutgen/hdd-sync.git"
+  },
+  "author": "Ryan Lutgen",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ryanlutgen/hdd-sync/issues"
+  },
+  "homepage": "https://github.com/ryanlutgen/hdd-sync#readme"
+}
