@@ -3,8 +3,8 @@ let fs = require('fs');
 let _ = require('lodash');
 let walk = require('walk')
 let log4js = require('log4js');
-var argv = require('minimist')(process.argv.slice(2));
-var config = require('./config.json');
+let argv = require('minimist')(process.argv.slice(2));
+let config = require('./config.json');
 
 log4js.configure({
     appenders: [
@@ -25,7 +25,7 @@ let destHdd = path.resolve(config.dest);
 //do not include first '\', but escape all others
 
 //recycle bin doesn't work in the walker filters (possibly because of the period char, so it goes here for now
-const DIRS_TO_IGNORE = ["$RECYCLE.BIN"];
+const DIRS_TO_IGNORE = [config.source + "$RECYCLE.BIN"];
 
 let createdDirs = [];
 
@@ -42,7 +42,7 @@ walker.on("directories", function (root, dirStatsArray, next) {
 
 function createDirsAsNeeded(dir, sourceDir) {
 	dir = path.resolve(dir);
-	var folders = dir.split('\\');
+	let folders = dir.split('\\');
 	
 	if (folders.length === 2 && folders[1] === '') {
 		logger.warn(`trying to create dir on a root drive ${dir}`);
@@ -81,7 +81,7 @@ function createFileIfNeeded(src, dest, srcFileStats) {
 	}
 	else {
 		logger.info(`${dest} already exists, comparing file size`);
-		var destFileStats = fs.statSync(dest);
+		let destFileStats = fs.statSync(dest);
 		
 		if (srcFileStats.size === destFileStats.size) {
 			logger.info(`file sizes are the same, doing nothing`);
@@ -113,7 +113,7 @@ function ignoreDir(dir) {
 
 walker.on("file", function (root, fileStats, next) {
 	if (!ignoreDir(root)) {
-		var destDir = root.replace(sourceHdd, destHdd);
+		let destDir = root.replace(sourceHdd, destHdd);
 		if (!_.includes(createdDirs, root)) {
 			createDirsAsNeeded(destDir, root);
 		}
@@ -131,7 +131,7 @@ walker.on("file", function (root, fileStats, next) {
 
 walker.on("directories", function (root, dirStatsArray, next) {
 	if (!ignoreDir(root)) {
-		var destDir = root.replace(sourceHdd, destHdd);
+		let destDir = root.replace(sourceHdd, destHdd);
 		
 		if (!_.includes(createdDirs, root)) {
 			createDirsAsNeeded(destDir, root);
