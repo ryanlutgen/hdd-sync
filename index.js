@@ -4,6 +4,7 @@ let _ = require('lodash');
 let walk = require('walk')
 let log4js = require('log4js');
 var argv = require('minimist')(process.argv.slice(2));
+var config = require('./config.json');
 
 log4js.configure({
     appenders: [
@@ -14,29 +15,39 @@ log4js.configure({
 let logger = log4js.getLogger('logs');
 //error, warn, info, debug
 // logger.setLevel(argv.logLevel.toUpperCase() || 'DEBUG');
+// logger.setLevel('INFO');
 logger.setLevel('DEBUG');
 
 //TODO pass in as args
-let sourceHdd = path.resolve("F:/");
-let destHdd = path.resolve("G:/");
+let sourceHdd = path.resolve(config.source);
+let destHdd = path.resolve(config.dest);
 
 //do not include first '\', but escape all others
-//const DIRS_TO_IGNORE = [sourceHdd + "Dropbox\\Work"];
-const DIRS_TO_IGNORE = [];
+
+//recycle bin doesn't work in the walker filters (possibly because of the period char, so it goes here for now
+const DIRS_TO_IGNORE = ["$RECYCLE.BIN"];
 
 let createdDirs = [];
 
+let options = {
+    followLinks: false, filters: config.patternsToIgnore
+};
+
 //TODO pass as arg, or do root HDD always
-//Walk through the dropbox folder
-walker = walk.walk(sourceHdd + "Dropbox");
+walker = walk.walk(sourceHdd, options);
 
 walker.on("directories", function (root, dirStatsArray, next) {
 	next();
 });
 
-function createDirsAsNeeded(dir) {
+function createDirsAsNeeded(dir, sourceDir) {
 	dir = path.resolve(dir);
 	var folders = dir.split('\\');
+	
+	if (folders.length === 2 && folders[1] === '') {
+		logger.warn(`trying to create dir on a root drive ${dir}`);
+		return;
+	}
 	
 	let totalDepth = folders.length;
 	
@@ -49,26 +60,41 @@ function createDirsAsNeeded(dir) {
 		
 		if (!fs.existsSync(folderPath)) {
 			fs.mkdirSync(folderPath);
-			createdDirs.push(folderPath);
+			logger.info(`createDirsAsNeeded: ${folderPath} created`);
+			createdDirs.push(sourceDir);
 		}
 		else {
 			logger.debug(`createDirsAsNeeded: ${folderPath} already exists, skipping`);
-			createdDirs.push(folderPath);
+			createdDirs.push(sourceDir);
 		}
 	}
 }
 
-function createFileIfNeeded(src, dest) {
+function copyFile(src, dest) {
+	fs.createReadStream(src).pipe(fs.createWriteStream(dest));
+}
+
+function createFileIfNeeded(src, dest, srcFileStats) {
 	if (!fs.existsSync(dest)) {
 		logger.info(`copying ${src} to ${dest}`);
-		fs.createReadStream(src).pipe(fs.createWriteStream(dest));
+		copyFile(src, dest);
 	}
 	else {
-		logger.info(`${dest} already exists, doing nothing`);
+		logger.info(`${dest} already exists, comparing file size`);
+		var destFileStats = fs.statSync(dest);
+		
+		if (srcFileStats.size === destFileStats.size) {
+			logger.info(`file sizes are the same, doing nothing`);
+		}
+		else {
+			logger.info(`file sizes are different, overwriting`);
+			copyFile(src, dest);
+		}
 	}
 }
 
 function ignoreDir(dir) {
+	dir = path.resolve(dir);
 	//exact match
 	if (_.includes(DIRS_TO_IGNORE, dir)) {
 		return true;
@@ -89,26 +115,44 @@ walker.on("file", function (root, fileStats, next) {
 	if (!ignoreDir(root)) {
 		var destDir = root.replace(sourceHdd, destHdd);
 		if (!_.includes(createdDirs, root)) {
-			createDirsAsNeeded(destDir);
+			createDirsAsNeeded(destDir, root);
 		}
 		else {
-			logger.debug(`${root} has already been created, skipping creation call`);
+			logger.debug(`walker file: ${root} has already been created, skipping creation call`);
 		}
-		//TODO activate file copying, just copying folders for testing
-		//createFileIfNeeded(root + '/' + fileStats.name, root.replace(sourceHdd, destHdd) + '/' + fileStats.name)
+		createFileIfNeeded(root + '/' + fileStats.name, root.replace(sourceHdd, destHdd) + '/' + fileStats.name, fileStats)
 		next();
 	}
 	else {
-		logger.debug(`ignoring ${root}`);
+		logger.debug(`walker file: ignoring ${root}`);
+		next();
+	}
+});
+
+walker.on("directories", function (root, dirStatsArray, next) {
+	if (!ignoreDir(root)) {
+		var destDir = root.replace(sourceHdd, destHdd);
+		
+		if (!_.includes(createdDirs, root)) {
+			createDirsAsNeeded(destDir, root);
+		}
+		else {
+			logger.debug(`walker directories: ${root} has already been created, skipping creation call`);
+		}
+		
+		next();
+	}
+	else {
+		logger.debug(`walker directories: ignoring ${root}`);
 		next();
 	}
 });
 
 walker.on("errors", function (root, nodeStatsArray, next) {
-	console.log("error");
+	logger.error("error");
 	next();
 });
 
 walker.on("end", function () {
-	console.log("Done syncing!");
+	logger.info("Done syncing!");
 });

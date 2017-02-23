@@ -11,7 +11,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "run": "node index"
+    "sync": "node index"
   },
   "repository": {
     "type": "git",
