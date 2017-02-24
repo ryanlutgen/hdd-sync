@@ -70,14 +70,19 @@ function createDirsAsNeeded(dir, sourceDir) {
 	}
 }
 
-function copyFile(src, dest) {
-	fs.createReadStream(src).pipe(fs.createWriteStream(dest));
+function copyFile(src, dest, callback) {
+	fs.createReadStream(src)
+		.pipe(fs.createWriteStream(dest))
+		.on('close', () => {
+			logger.info(`file copied`);
+			callback();
+		});
 }
 
-function createFileIfNeeded(src, dest, srcFileStats) {
+function createFileIfNeeded(src, dest, srcFileStats, callback) {
 	if (!fs.existsSync(dest)) {
 		logger.info(`copying ${src} to ${dest}`);
-		copyFile(src, dest);
+		copyFile(src, dest, callback);
 	}
 	else {
 		logger.info(`${dest} already exists, comparing file size`);
@@ -85,10 +90,11 @@ function createFileIfNeeded(src, dest, srcFileStats) {
 		
 		if (srcFileStats.size === destFileStats.size) {
 			logger.info(`file sizes are the same, doing nothing`);
+			callback();
 		}
 		else {
 			logger.info(`file sizes are different, overwriting`);
-			copyFile(src, dest);
+			copyFile(src, dest, callback);
 		}
 	}
 }
@@ -120,8 +126,7 @@ walker.on("file", function (root, fileStats, next) {
 		else {
 			logger.debug(`walker file: ${root} has already been created, skipping creation call`);
 		}
-		createFileIfNeeded(root + '/' + fileStats.name, root.replace(sourceHdd, destHdd) + '/' + fileStats.name, fileStats)
-		next();
+		createFileIfNeeded(root + '/' + fileStats.name, root.replace(sourceHdd, destHdd) + '/' + fileStats.name, fileStats, () => { next() });
 	}
 	else {
 		logger.debug(`walker file: ignoring ${root}`);
