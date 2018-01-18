@@ -1,5 +1,6 @@
 {
-	"source": "",
-	"dest": "",
-	"patternsToIgnore": [""]
+	"source": "E:/",
+	"dest": "F:/",
+	"patternsToIgnore": ["VM Shared"],
+	"forceOverwrite": false
 }

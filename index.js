@@ -84,6 +84,10 @@ function createFileIfNeeded(src, dest, srcFileStats, callback) {
 		logger.info(`copying ${src} to ${dest}`);
 		copyFile(src, dest, callback);
 	}
+	else if (config.forceOverwrite) {
+		logger.info(`file already exists, but forceOverwrite is on.  copying ${src} to ${dest}`);
+		copyFile(src, dest, callback);
+	}
 	else {
 		logger.info(`${dest} already exists, comparing file size`);
 		let destFileStats = fs.statSync(dest);
