@@ -1,6 +1,7 @@
 {
 	"source": "E:/",
 	"dest": "F:/",
-	"patternsToIgnore": ["VM Shared"],
-	"forceOverwrite": false
+	"patternsToIgnore": [],
+	"forceOverwrite": false,
+	"logLevel": "WARN"
 }
